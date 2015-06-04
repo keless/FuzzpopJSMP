@@ -56,6 +56,7 @@ var Multiplayer = Class.create({
 		this.connections = {};
 		
 		this.sendOrderCount = 0;
+		this.uuid = uuid.v4();
 		
 		Service.add("mp", this);
 	},
@@ -113,7 +114,12 @@ var Multiplayer = Class.create({
 		}
 	},
 
-	//utility
+	//utility functions
+	// use this for tagging player-specific objects
+	getUUID: function() {
+		return this.uuid;
+	},
+	// use this for peer-to-peer communications only (use getUUID instead)
 	getMyPeerId: function() {
 		return this.peer.id;
 	},

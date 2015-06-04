@@ -103,13 +103,17 @@ var SideScrollModel = Class.create({
 	},
 	
 	SerializeWorldState: function( ct ) {
+		var mp = Service.get("mp");
+		var myUUID = mp.getUUID();
+		
 		var stateJson = {};
-		
 		stateJson.time = ct;
-		
 		stateJson.entities = [];
 		for(var uuid in this.entities) {
 			var entity = this.entities[uuid];
+			
+			if(entity.ownerUUID != myUUID ) continue; //only send entities we own
+			
 			var entityJson = entity.SerializeState();
 			stateJson.entities.push(entityJson);
 		}

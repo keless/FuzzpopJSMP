@@ -6,6 +6,8 @@ app_create = function()
 	var app = new Application("FuzzPop", "content", 'mlw7r9h3ult0529');
 	window.app = app;
 	
+	app.sentLastUpdate = false;
+	
 	var RP = Service.get("rp");
 	//RP.loadImage("gfx/derpy.png");
 	//RP.loadImage("css/images/comment.png");
@@ -25,57 +27,20 @@ app_create = function()
 				RP.setResource("derpyAnim", derpyAnim);
 				
 				app.resourcesComplete();
-				
-				/*
-				var entity = new EntityModel();
-				app.player1 = entity;
-				var spawnPt = app.ssWorld.map.GetRandomSpawn();
-				entity.x = spawnPt.x;
-				entity.y = spawnPt.y;
-				entity.AttachAnimation(derpyAnim);
-				entity.AnimEvent(0, "idle");
-				app.ssWorld.AddEntity(entity);
-				
-				var entityController = new EntityController(entity);
-				app.p1c = entityController;
-				
-				var entity2 = new EntityModel();
-				app.player2 = entity2;
-				var spawnPt2 = app.ssWorld.map.GetSpawnFurthestFrom(spawnPt.x, spawnPt.y);
-				entity2.x = spawnPt2.x;
-				entity2.y = spawnPt2.y;
-				entity2.AttachAnimation(derpyAnim);
-				entity2.AnimEvent(0, "idle");
-				app.ssWorld.AddEntity(entity2);
-				
-				var entityController2 = new EntityController(entity2);
-				app.p2c = entityController2;
-				*/
 			});
 		});
-		
-		
-		/*
-		RP.getSprite("gfx/derpy_walk.sprite", function(e){
-			var sprDerpWalk = e.res;
-			var entity = new EntityModel();
-			app.player1 = entity;
-			var spawnPt = app.ssWorld.map.GetSpawnPoint(0);
-			entity.x = spawnPt.x;
-			entity.y = spawnPt.y;
-			entity.AttachSprite(sprDerpWalk);
-			app.ssWorld.AddEntity(entity);
-		});
-		*/
-
 	});
 	
 	app.resourcesComplete = function() {
 		console.log("resource loading complete");
 		
+		var mp = Service.get("mp");
+		mp.StartPeerSession();
+		
 		var RP = Service.get("rp");
 		//spawn player
 				var entity = new EntityModel();
+				entity.ownerUUID = mp.getUUID();
 				app.player1 = entity;
 				var spawnPt = app.ssWorld.map.GetRandomSpawn();
 				entity.x = spawnPt.x;
@@ -87,8 +52,7 @@ app_create = function()
 				var entityController = new EntityController(entity);
 				app.p1c = entityController;
 				
-		var mp = Service.get("mp");
-		mp.StartPeerSession();
+
 	}
 	
 	
@@ -107,12 +71,6 @@ app_create = function()
 			g.drawTextEx(" isGrounded: "+ app.player1.body.isGrounded(), 10, 85, "12px Arial", "#FFFFFF");
 			*/
 		}
-		if(app.player2) {
-			var pos = app.player2.body.GetPosition();
-			var velocity = app.player2.body.GetLinearVelocity();
-			g.drawTextEx("player2: "+pos.x+","+pos.y+":"+velocity.x +","+velocity.y, 10, 70, "12px Arial", "#FFFFFF");
-			g.drawTextEx(" isGrounded: "+ app.player2.body.isGrounded(), 10, 85, "12px Arial", "#FFFFFF");
-		}
 		
 		var px = Service.get("physics");
 		if(bShowDebug) px.DrawDebug();
@@ -129,6 +87,14 @@ app_create = function()
 		}
 
 		app.ssWorld.Update(dt, ct);
+		
+		if(!app.sentLastUpdate) {
+			//xxx todo: send world update
+			var serializedWorldState = app.ssWorld.SerializeWorldState(app.GetTimeElapsed());
+			var mp = Service.get("mp");
+			mp.SendDataAll({cmd:"worldUpdate", data:serializedWorldState});
+			app.sentLastUpdate = true;
+		}
 	}
 	
 	app.OnMouseDown = function(e, x, y) {
@@ -250,6 +216,7 @@ app_create = function()
 		
 		app.Play();
 		
+		app.sentLastUpdate = true;
 		var serializedWorldState = app.ssWorld.SerializeWorldState(app.GetTimeElapsed());
 		mp.SendDataTo(e.peerId, {cmd:"worldUpdate", data:serializedWorldState});
 	});
@@ -257,6 +224,7 @@ app_create = function()
 		var mp = Service.get("mp");
 		switch(e.data.cmd) {
 			case "worldUpdate":{
+				app.sentLastUpdate = false;
 				var serializedWorldState = e.data.data;
 				app.ssWorld.UpdateFromSerializedWorldState(app.GetTimeElapsed(), serializedWorldState);
 			} break;

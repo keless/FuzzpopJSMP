@@ -19,14 +19,16 @@ var EntityModel = Class.create({
 		this.height = 0;
 		this.isDead = false;
 		this.deadTime = 0;
+		this.ownerUUID = "";
 		
 		this.facingRight = true;
 	},
 	
 	SerializeState: function() {
-		var cv = this.body.GetLinearVelocity();
+		var cv = this.body ? this.body.GetLinearVelocity() : new b2Vec2(0,0);
 		var stateJson = {
 			uuid:this.uuid,
+			owner:this.ownerUUID,
 			x:this.x,
 			y:this.y,
 			velX:cv.x,
@@ -42,19 +44,32 @@ var EntityModel = Class.create({
 		//TODO: extrapolate xy(ct) from xy(ft) + velXY(ct-ft)
 		 /// but what if the motion would have resulted in a collision??? 
 		 
-		 //center 
-		 var cx = this.x + this.width/2;
-		 var cy = this.y + this.height/2;
-		 var physPos = WorldToPhysCoords(cx, cy);
+		if(this.body) {
+			this.x = stateJson.x;
+			this.y = stateJson.y;
+			
+			//center 
+			var cx = stateJson.x + this.width/2;
+			var cy = stateJson.y + this.height/2;
+			var physPos = WorldToPhysCoords(cx, cy);
+			
+			this.body.SetPosition(physPos);
+			this.body.SetLinearVelocity(new b2Vec2(stateJson.velX, stateJson.velY));
+		}
 		
-		this.body.SetPosition(physPos);
-		this.body.SetLinearVelocity(new b2Vec2(stateJson.velX, stateJson.velY));
+		if( this.isDead != stateJson.dead ) {
+			var physics = Service.get("physics");
+			//handle transition
+			if(stateJson.dead) {
+				this.Die(fromTime, physics);
+			}else {
+				//become alive
+				this.Resurrect(fromTime, this.x, this.y, physics );
+			}
+		}
 		
-		//apply to self and body
-		
-		this.dead = stateJson.dead;
-		this.deadTime = stateJson.deadTime;
-		this.facing = stateJson.facing;
+
+		this.facingRight = stateJson.facing;
 	},
 	
 	AttachAnimation: function( animation, updateSize ) {
