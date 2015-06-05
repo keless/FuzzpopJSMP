@@ -71,6 +71,8 @@ var ResourceProvider = Class.create({
 		img.isLoaded = false;
 		img.src = this.baseURL + fileName;
 		
+		this.images[fileName] = img;
+		
 		if(fnOnLoad) RP.eventBus.addListener(fileName, fnOnLoad);
 		img.onload = function() {
 			//console.log("image loaded: " + fileName);
@@ -81,11 +83,9 @@ var ResourceProvider = Class.create({
 		if(img.complete)
 		{
 			console.warn("image already complete, abort loading")
-			return;
+		}else {
+			this.numImagesLoading++;
 		}
-		
-		this.images[fileName] = img;
-		this.numImagesLoading++;
 	},
 	
 	/**
