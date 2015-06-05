@@ -114,8 +114,8 @@ var Physics = Class.create({
 		var isGrounded = bodyD.isGrounded();
 		//console.log("isGrounded " + bodyD.GetUserData().isGrounded)
 
-		var isWall = bodyS.GetUserData().isWall;
-		if(isWall) return; //walls collide normally
+		var dataS = bodyS.GetUserData();
+		if(dataS && dataS.isWall) return; //walls collide normally
 		
 		//the following logic is specific to grounds, not walls
 		var cv = bodyD.GetLinearVelocity();
